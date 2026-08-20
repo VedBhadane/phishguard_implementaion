@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PhishGuard - Real-Time Phishing Detection</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🛡️ PhishGuard</h1>
+    <p class="sub">Multi-paradigm, explainable, self-healing phishing detection — runs entirely offline, no third-party lookups.</p>
+  </header>
+
+  <form method="POST" class="card">
+    <label for="url">URL to check</label>
+    <input type="text" id="url" name="url" placeholder="https://example.com/login" value="{{ url_val }}" required>
+
+    <label for="html">Page HTML (optional — improves accuracy, paste "view source" content)</label>
+    <textarea id="html" name="html" rows="6" placeholder="&lt;html&gt;...&lt;/html&gt; (optional)">{{ html_val }}</textarea>
+
+    <button type="submit">Scan</button>
+  </form>
+
+  {% if error %}
+    <div class="card error">⚠️ {{ error }}</div>
+  {% endif %}
+
+  {% if result %}
+    <div class="card result {{ 'phish' if result.verdict == 'PHISHING' else 'safe' }}">
+      <h2>
+        {% if result.verdict == 'PHISHING' %}🚨 PHISHING{% else %}✅ LEGITIMATE{% endif %}
+      </h2>
+      <p>Phishing probability: <strong>{{ (result.phishing_probability * 100) | round(1) }}%</strong>
+         (confidence in verdict: {{ (result.confidence * 100) | round(1) }}%)</p>
+      <p class="muted">
+        {% if result.used_html %}Scored using URL + HTML structure.{% else %}Scored from URL alone — paste HTML for a more accurate result.{% endif %}
+      </p>
+
+      <h3>Why this verdict — top contributing features</h3>
+      <table>
+        <tr><th>Feature</th><th>Value</th><th>Contribution</th></tr>
+        {% for f in result.top_features %}
+        <tr class="{{ 'pos' if f.contribution > 0 else 'neg' }}">
+          <td>{{ f.feature }}</td>
+          <td>{{ f.value }}</td>
+          <td>{{ '%+.4f' | format(f.contribution) }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+      <p class="muted small">Positive contribution = pushed the score toward PHISHING. Negative = pushed toward LEGITIMATE.
+      Computed via single-feature ablation against the training-set median (see README for method details).</p>
+    </div>
+  {% endif %}
+
+  <footer>
+    <p class="muted small">API: <code>POST /api/scan</code> with JSON <code>{"url": "...", "html": "..."}</code></p>
+  </footer>
+</div>
+</body>
+</html>
