@@ -1,0 +1,10 @@
+mutation,retention,evaded
+benign_padding,0.9972,0.0028
+case_mix,0.9972,0.0028
+add_port,0.9972,0.0028
+path_lengthen,0.9972,0.0028
+url_encode,1.0,0.0
+add_subdomain,1.0,0.0
+hyphenate,1.0,0.0
+homoglyph,1.0,0.0
+tld_swap,1.0,0.0

@@ -1,9 +1,18 @@
 {
   "metrics": {
-    "accuracy": 1.0,
-    "precision": 1.0,
-    "recall": 1.0,
-    "f1": 1.0,
+    "accuracy": 0.887,
+    "precision": 0.8953,
+    "recall": 0.8755,
+    "f1": 0.8853,
+    "mcc": 0.7742,
+    "roc_auc": 0.8866,
+    "fpr": 0.1016,
+    "confusion": {
+      "tn": 451,
+      "fp": 51,
+      "fn": 62,
+      "tp": 436
+    },
     "n_train": 4000,
     "n_test": 1000
   },
@@ -32,6 +41,14 @@
     "tld_length",
     "long_url",
     "abnormal_subdomain_count",
+    "suspicious_tld",
+    "has_punycode",
+    "brand_in_subdomain",
+    "brand_lookalike",
+    "vowel_consonant_anomaly",
+    "hex_or_encoded_chars",
+    "num_query_params",
+    "path_depth",
     "has_html",
     "num_forms",
     "form_action_external",

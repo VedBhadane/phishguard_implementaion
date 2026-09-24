@@ -43,6 +43,27 @@ SHORTENERS = {
     "adf.ly", "shorte.st", "cutt.ly", "rebrand.ly", "tiny.cc",
 }
 
+# TLDs disproportionately abused by phishing campaigns (Spamhaus / APWG
+# "most abused TLD" reports). Kept as a small static set -- no network lookup.
+SUSPICIOUS_TLDS = {
+    "zip", "mov", "xyz", "top", "club", "info", "ru", "cn", "gq", "tk", "cc",
+    "work", "link", "click", "country", "kim", "science", "party", "gdn",
+    "review", "stream", "download", "loan", "men", "date", "racing", "win",
+}
+
+# Popular brands most commonly impersonated in phishing (Cofense / APWG
+# brand-abuse reports). Used to flag brand-name-in-wrong-position tricks
+# like paypal.com.secure-login.ru or amaz0n-account.tk.
+TARGET_BRANDS = {
+    "paypal", "amazon", "apple", "microsoft", "netflix", "google", "facebook",
+    "instagram", "whatsapp", "linkedin", "chase", "wellsfargo", "bankofamerica",
+    "citibank", "hsbc", "dhl", "fedex", "ups", "usps", "irs", "coinbase",
+    "binance", "metamask", "outlook", "office365", "dropbox", "adobe",
+}
+
+# Common homoglyph substitutions used in look-alike domains (o->0, l->1, etc.)
+HOMOGLYPH_MAP = str.maketrans({"0": "o", "1": "l", "3": "e", "5": "s", "7": "t", "@": "a"})
+
 URL_FEATURE_NAMES = [
     "url_length",
     "hostname_length",
@@ -68,6 +89,15 @@ URL_FEATURE_NAMES = [
     "tld_length",
     "long_url",
     "abnormal_subdomain_count",
+    # --- evasion-resistant features (v2) ---
+    "suspicious_tld",
+    "has_punycode",
+    "brand_in_subdomain",
+    "brand_lookalike",
+    "vowel_consonant_anomaly",
+    "hex_or_encoded_chars",
+    "num_query_params",
+    "path_depth",
 ]
 
 HTML_FEATURE_NAMES = [
@@ -107,6 +137,49 @@ def _is_ip_address(hostname: str) -> bool:
     )
 
 
+def _brand_in_subdomain(hostname: str) -> int:
+    """paypal.com.evil.ru -> the brand appears somewhere OTHER than the
+    registered domain. We flag when a known brand token appears in the
+    subdomain portion (everything before the last two labels)."""
+    labels = hostname.lower().split(".")
+    if len(labels) <= 2:
+        return 0
+    subdomain_labels = labels[:-2]
+    for lab in subdomain_labels:
+        for brand in TARGET_BRANDS:
+            if brand in lab:
+                return 1
+    return 0
+
+
+def _brand_lookalike(hostname: str) -> int:
+    """amaz0n / paypa1 / g00gle: a homoglyph-normalized label matches a
+    known brand but the raw label does not (i.e. it is a spoof, not the
+    real brand)."""
+    for lab in hostname.lower().split("."):
+        if not lab:
+            continue
+        normalized = lab.translate(HOMOGLYPH_MAP)
+        for brand in TARGET_BRANDS:
+            if normalized == brand and lab != brand:
+                return 1
+    return 0
+
+
+def _vowel_consonant_anomaly(hostname: str) -> int:
+    """Randomly-generated phishing hostnames (djfkslqwmn.top) have very
+    low vowel ratios. Flag registered-domain labels with an unusually low
+    vowel fraction and reasonable length."""
+    labels = [l for l in hostname.lower().split(".") if l.isalpha()]
+    if not labels:
+        return 0
+    core = max(labels, key=len)
+    if len(core) < 7:
+        return 0
+    vowels = sum(c in "aeiou" for c in core)
+    return int(vowels / len(core) < 0.25)
+
+
 def extract_url_features(url: str) -> dict:
     """Pure lexical features computed from the URL string alone.
     No network access required -- safe to run on every request."""
@@ -130,6 +203,14 @@ def extract_url_features(url: str) -> dict:
 
     tld = subdomains[-1] if subdomains else ""
 
+    # Correct double-slash-redirect check: look for "//" AFTER the scheme's
+    # "://" rather than a naive rfind that trips on long paths.
+    after_scheme = url.split("://", 1)[-1]
+    double_slash_redirect = int("//" in after_scheme)
+
+    query = parsed.query or ""
+    encoded_chars = len(re.findall(r"%[0-9a-fA-F]{2}", url))
+
     feats = {
         "url_length": len(url),
         "hostname_length": len(hostname),
@@ -143,7 +224,7 @@ def extract_url_features(url: str) -> dict:
         "num_subdomains": num_subdomains,
         "has_ip_address": int(_is_ip_address(hostname)),
         "has_at_symbol": int("@" in url),
-        "has_double_slash_redirect": int(url.rfind("//") > 7),
+        "has_double_slash_redirect": double_slash_redirect,
         "prefix_suffix_hyphen": int("-" in hostname),
         "https_token_in_hostname": int("https" in hostname.lower()),
         "is_https": int(parsed.scheme == "https"),
@@ -157,6 +238,15 @@ def extract_url_features(url: str) -> dict:
         "tld_length": len(tld),
         "long_url": int(len(url) > 75),
         "abnormal_subdomain_count": int(num_subdomains > 3),
+        # --- evasion-resistant features (v2) ---
+        "suspicious_tld": int(tld.lower() in SUSPICIOUS_TLDS),
+        "has_punycode": int("xn--" in hostname.lower()),
+        "brand_in_subdomain": _brand_in_subdomain(hostname),
+        "brand_lookalike": _brand_lookalike(hostname),
+        "vowel_consonant_anomaly": _vowel_consonant_anomaly(hostname),
+        "hex_or_encoded_chars": encoded_chars,
+        "num_query_params": len([q for q in query.split("&") if q]) if query else 0,
+        "path_depth": len([p for p in path.split("/") if p]),
     }
     return feats
 

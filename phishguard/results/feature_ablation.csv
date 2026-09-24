@@ -1,0 +1,4 @@
+feature_set,accuracy,precision,recall,f1,fpr
+URL-only (24 feats),0.887,0.8953,0.8755,0.8853,0.1016
+HTML-only (16 feats),0.887,0.8953,0.8755,0.8853,0.1016
+Hybrid (all feats),0.887,0.8953,0.8755,0.8853,0.1016
