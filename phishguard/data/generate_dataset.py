@@ -161,7 +161,13 @@ def make_phish_html(url):
 </body></html>"""
 
 
-def generate(n_per_class=1500, seed=42):
+def generate(n_per_class=1500, seed=42, label_noise=0.0):
+    """label_noise: fraction of examples whose label is flipped, to create
+    realistic class overlap. Real phishing data is NOT linearly separable;
+    a small amount of noise makes the benchmark discriminate between models
+    and feature sets instead of everything scoring 100%. Default 0.0 keeps
+    the original clean behavior; use e.g. 0.12 for a harder, more realistic
+    benchmark. This is a stand-in for a real dataset, not a replacement."""
     random.seed(seed)
     rows = []
     for _ in range(n_per_class):
@@ -172,6 +178,11 @@ def generate(n_per_class=1500, seed=42):
         url = make_phish_url()
         html = make_phish_html(url)
         rows.append((url, html, 1))
+    if label_noise > 0:
+        k = int(len(rows) * label_noise)
+        for idx in random.sample(range(len(rows)), k):
+            u, h, lbl = rows[idx]
+            rows[idx] = (u, h, 1 - lbl)
     random.shuffle(rows)
     return rows
 
@@ -180,10 +191,12 @@ def main():
     ap = argparse.ArgumentParser(description="Generate synthetic PhishGuard dataset")
     ap.add_argument("--n", type=int, default=1500, help="examples per class")
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--label-noise", type=float, default=0.0,
+                    help="fraction of labels to flip for realistic overlap (e.g. 0.12)")
     ap.add_argument("--out", default=os.path.join(os.path.dirname(__file__), "phishing_dataset.csv"))
     args = ap.parse_args()
 
-    rows = generate(args.n, args.seed)
+    rows = generate(args.n, args.seed, label_noise=args.label_noise)
     with open(args.out, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["url", "html", "label"])

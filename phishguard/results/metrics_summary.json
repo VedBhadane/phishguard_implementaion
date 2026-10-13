@@ -1,0 +1,131 @@
+{
+  "baselines": [
+    {
+      "model": "LogisticRegression",
+      "accuracy": 0.887,
+      "precision": 0.8953,
+      "recall": 0.8755,
+      "f1": 0.8853,
+      "mcc": 0.7742,
+      "roc_auc": 0.8891,
+      "fpr": 0.1016
+    },
+    {
+      "model": "DecisionTree",
+      "accuracy": 0.825,
+      "precision": 0.8289,
+      "recall": 0.8173,
+      "f1": 0.8231,
+      "mcc": 0.65,
+      "roc_auc": 0.8328,
+      "fpr": 0.1673
+    },
+    {
+      "model": "SVM (RBF)",
+      "accuracy": 0.887,
+      "precision": 0.8953,
+      "recall": 0.8755,
+      "f1": 0.8853,
+      "mcc": 0.7742,
+      "roc_auc": 0.8913,
+      "fpr": 0.1016
+    },
+    {
+      "model": "GradientBoosting",
+      "accuracy": 0.887,
+      "precision": 0.8953,
+      "recall": 0.8755,
+      "f1": 0.8853,
+      "mcc": 0.7742,
+      "roc_auc": 0.8959,
+      "fpr": 0.1016
+    },
+    {
+      "model": "PhishGuard (RandomForest)",
+      "accuracy": 0.887,
+      "precision": 0.8953,
+      "recall": 0.8755,
+      "f1": 0.8853,
+      "mcc": 0.7742,
+      "roc_auc": 0.8866,
+      "fpr": 0.1016
+    }
+  ],
+  "feature_ablation": [
+    {
+      "feature_set": "URL-only (24 feats)",
+      "accuracy": 0.887,
+      "precision": 0.8953,
+      "recall": 0.8755,
+      "f1": 0.8853,
+      "fpr": 0.1016
+    },
+    {
+      "feature_set": "HTML-only (16 feats)",
+      "accuracy": 0.887,
+      "precision": 0.8953,
+      "recall": 0.8755,
+      "f1": 0.8853,
+      "fpr": 0.1016
+    },
+    {
+      "feature_set": "Hybrid (all feats)",
+      "accuracy": 0.887,
+      "precision": 0.8953,
+      "recall": 0.8755,
+      "f1": 0.8853,
+      "fpr": 0.1016
+    }
+  ],
+  "adversarial": {
+    "baseline_detection": 0.775,
+    "mean_robustness": 0.8527,
+    "per_mutation": [
+      {
+        "mutation": "path_lengthen",
+        "retention": 0.529,
+        "evaded": 0.471
+      },
+      {
+        "mutation": "benign_padding",
+        "retention": 0.7,
+        "evaded": 0.3
+      },
+      {
+        "mutation": "add_subdomain",
+        "retention": 0.7355,
+        "evaded": 0.2645
+      },
+      {
+        "mutation": "homoglyph",
+        "retention": 0.9097,
+        "evaded": 0.0903
+      },
+      {
+        "mutation": "tld_swap",
+        "retention": 0.9097,
+        "evaded": 0.0903
+      },
+      {
+        "mutation": "add_port",
+        "retention": 0.9548,
+        "evaded": 0.0452
+      },
+      {
+        "mutation": "hyphenate",
+        "retention": 0.9645,
+        "evaded": 0.0355
+      },
+      {
+        "mutation": "case_mix",
+        "retention": 0.971,
+        "evaded": 0.029
+      },
+      {
+        "mutation": "url_encode",
+        "retention": 1.0,
+        "evaded": 0.0
+      }
+    ]
+  }
+}

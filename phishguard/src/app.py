@@ -16,6 +16,7 @@ from flask import Flask, request, jsonify, render_template
 
 from .model import PhishGuardModel, MODEL_PATH, META_PATH
 from .features import extract_features, FEATURE_NAMES
+from .llm_explainer import explain_in_words
 
 app = Flask(__name__)
 
@@ -38,13 +39,15 @@ def score(url: str, html: str = ""):
     feats = extract_features(url, html, base_url=url)
     explanation = model.explain(feats)
     proba = explanation["predicted_probability"]
-    verdict = "PHISHING" if proba >= 0.5 else "LEGITIMATE"
-    confidence = proba if verdict == "PHISHING" else 1 - proba
+    verdict = model.verdict_band(proba)
+    confidence = proba if proba >= 0.5 else 1 - proba
+    rationale = explain_in_words(verdict, proba, explanation["top_features"], url)
     return {
         "url": url,
         "verdict": verdict,
         "phishing_probability": proba,
         "confidence": round(confidence, 4),
+        "rationale": rationale,
         "top_features": explanation["top_features"],
         "used_html": bool(html.strip()),
     }
