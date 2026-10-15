@@ -11,6 +11,7 @@ Usage:
 
 import argparse
 from src.model import train_from_csv
+from src.baselines import train_baselines
 
 
 def main():
@@ -26,6 +27,9 @@ def main():
     for item in model.global_importances(10):
         print(f"  {item['feature']}: {item['importance']}")
     print("\nModel saved to models/phishguard_model.joblib")
+
+    train_baselines(args.data)
+    print("Baseline models (for the comparison report) saved to models/baselines.joblib")
 
 
 if __name__ == "__main__":

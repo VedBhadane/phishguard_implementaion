@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PhishGuard - Real-Time Phishing Detection</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
@@ -9,17 +10,16 @@
 <div class="wrap">
   <header>
     <h1>🛡️ PhishGuard</h1>
-    <p class="sub">Multi-paradigm, explainable, self-healing phishing detection — runs entirely offline, no third-party lookups.</p>
+    <p class="sub">Multi-paradigm, explainable, self-healing phishing detection — no third-party lookups (it only visits the page being checked).</p>
   </header>
 
-  <form method="POST" class="card">
+  <form method="POST" class="card" id="scan-form">
     <label for="url">URL to check</label>
     <input type="text" id="url" name="url" placeholder="https://example.com/login" value="{{ url_val }}" required>
 
-    <label for="html">Page HTML (optional — improves accuracy, paste "view source" content)</label>
-    <textarea id="html" name="html" rows="6" placeholder="&lt;html&gt;...&lt;/html&gt; (optional)">{{ html_val }}</textarea>
+    <p class="muted small">Only the URL is needed. PhishGuard fetches the page itself (static HTML only, nothing is run) and falls back to the URL alone if the page cannot be reached.</p>
 
-    <button type="submit">Scan</button>
+    <button type="submit" id="scan-btn">Scan</button>
   </form>
 
   {% if error %}
@@ -27,14 +27,15 @@
   {% endif %}
 
   {% if result %}
-    <div class="card result {{ 'phish' if result.verdict == 'PHISHING' else 'safe' }}">
+    <div class="card result {{ 'phish' if result.verdict == 'PHISHING' else ('warn' if result.verdict == 'SUSPICIOUS' else 'safe') }}">
       <h2>
-        {% if result.verdict == 'PHISHING' %}🚨 PHISHING{% else %}✅ LEGITIMATE{% endif %}
+        {% if result.verdict == 'PHISHING' %}🚨 PHISHING{% elif result.verdict == 'SUSPICIOUS' %}⚠️ SUSPICIOUS{% else %}✅ LEGITIMATE{% endif %}
       </h2>
       <p>Phishing probability: <strong>{{ (result.phishing_probability * 100) | round(1) }}%</strong>
          (confidence in verdict: {{ (result.confidence * 100) | round(1) }}%)</p>
+      <p class="rationale">{{ result.rationale }}</p>
       <p class="muted">
-        {% if result.used_html %}Scored using URL + HTML structure.{% else %}Scored from URL alone — paste HTML for a more accurate result.{% endif %}
+        {% if result.used_html %}Scored using URL + the page's HTML (fetched automatically).{% else %}Scored from the URL alone. {{ result.fetch.message }}{% endif %}
       </p>
 
       <h3>Why this verdict — top contributing features</h3>
@@ -51,11 +52,25 @@
       <p class="muted small">Positive contribution = pushed the score toward PHISHING. Negative = pushed toward LEGITIMATE.
       Computed via single-feature ablation against the training-set median (see README for method details).</p>
     </div>
+
+    <div class="card">
+      <h2>Comparison report</h2>
+      <p class="muted small">How this result compares with traditional phishing detection, using the literature survey as reference.</p>
+      <a class="btn" href="{{ url_for('scan_report_pdf', scan_id=result.scan_id) }}" target="_blank">Download PDF report</a>
+      <a class="btn ghost" href="{{ url_for('project_report') }}" target="_blank">Project-level report</a>
+      <details open><summary>Show report</summary>
+        {% include "_report_sections.html" %}
+      </details>
+    </div>
   {% endif %}
 
   <footer>
-    <p class="muted small">API: <code>POST /api/scan</code> with JSON <code>{"url": "...", "html": "..."}</code></p>
+    <p class="muted small">API: <code>POST /api/scan</code> with JSON <code>{"url": "..."}</code> (add <code>"report": true</code> for the comparison report) &middot; <a href="{{ url_for('project_report') }}">Project comparison report</a></p>
   </footer>
 </div>
+<script>
+(function(){var f=document.getElementById('scan-form'),b=document.getElementById('scan-btn');
+if(f&&b){f.addEventListener('submit',function(){b.disabled=true;b.textContent='Fetching page and scanning...';});}})();
+</script>
 </body>
 </html>

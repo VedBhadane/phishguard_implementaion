@@ -64,9 +64,9 @@ has this, and the **drift-recovery plot** (`results/drift_recovery.png`) is a
 figure the reference XSS paper and the surveyed papers simply don't have.
 *This is the single strongest thing to lead with.*
 
-### D2. API-independent hybrid features (URL + HTML, zero network calls)
+### D2. API-independent hybrid features (URL + HTML, no third-party lookups)
 40+ features spanning URL lexical *and* HTML structural signals, computed with
-no WHOIS/Safe Browsing/Alexa lookups. This gives the HTML-side coverage that
+no WHOIS/Safe Browsing/Alexa lookups (since v3 the HTML comes from one fetch of the page being checked). This gives the HTML-side coverage that
 URL-only projects lack, while keeping sub-millisecond, browser-speed latency
 that WHOIS-dependent projects can't match.
 

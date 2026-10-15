@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PhishGuard - Comparison Report</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="wrap wide">
+  <header>
+    <h1>📊 Comparison report</h1>
+    <p class="sub">How PhishGuard compares with the way phishing has traditionally been detected, based on the team's literature survey.</p>
+  </header>
+  <div class="card">
+    <a class="btn" href="{{ url_for('project_report_pdf') }}">Download PDF</a>
+    <a class="btn ghost" href="{{ url_for('index') }}">Scan a URL</a>
+  </div>
+  <div class="card">
+    {% include "_report_sections.html" %}
+  </div>
+</div>
+</body>
+</html>

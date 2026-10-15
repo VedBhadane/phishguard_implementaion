@@ -1,0 +1,86 @@
+{# Shared by index.html (per-scan) and report.html (project report). Expects `report`. #}
+{% set scan = report.scan %}
+{% if scan %}
+<h3>1. How traditional models judge this same URL</h3>
+<p class="muted small">The four baselines stand for the usual single static classifier with a binary 0.5 verdict and no explanation. They were trained on the same data and split as PhishGuard.</p>
+<table>
+  <tr><th>Model</th><th>Phishing probability</th><th>Verdict</th><th>Explains why</th></tr>
+  <tr class="pg-row"><td>PhishGuard (calibrated RandomForest, 3-band)</td><td>{{ (scan.probability * 100) | round(1) }}%</td><td>{{ scan.verdict }}</td><td>Yes, per feature</td></tr>
+  {% for b in scan.baselines %}
+  <tr><td>{{ b.model }}</td><td>{{ (b.probability * 100) | round(1) }}%</td><td>{{ b.verdict }}</td><td>No</td></tr>
+  {% endfor %}
+</table>
+{% if scan.agreement %}<p class="muted small">{{ scan.agreement }}</p>{% endif %}
+
+{% if scan.signal %}
+<h3>2. What the fetched page added</h3>
+<table>
+  <tr><th>Signal used</th><th>Phishing probability</th><th>Verdict</th></tr>
+  <tr><td>URL only</td><td>{{ (scan.signal.url_only_probability * 100) | round(1) }}%</td><td>{{ scan.signal.url_only_verdict }}</td></tr>
+  <tr><td>URL + page HTML</td><td>{{ (scan.signal.hybrid_probability * 100) | round(1) }}%</td><td>{{ scan.signal.hybrid_verdict }}</td></tr>
+</table>
+<p class="muted small">{{ scan.signal.note }}</p>
+{% endif %}
+{% set n0 = 3 if scan.signal else 2 %}
+{% else %}
+{% set n0 = 0 %}
+{% endif %}
+
+<h3>{{ n0 + 1 }}. Capability comparison with surveyed approaches</h3>
+<div class="scroll">
+<table class="cap">
+  <tr><th>Approach</th>{% for c in report.capability.columns %}<th>{{ c }}</th>{% endfor %}</tr>
+  {% for r in report.capability.rows %}
+  <tr class="{{ 'pg-row' if loop.last else '' }}">
+    <td><strong>{{ r.approach }}</strong><br><span class="muted small">{{ r.survey_category }}</span></td>
+    {% for c in r.cells %}<td class="cap-{{ c|lower }}">{{ c }}</td>{% endfor %}
+  </tr>
+  {% endfor %}
+</table>
+</div>
+<p class="muted small">{{ report.capability.footnote }}</p>
+<details><summary class="small">Basis in the survey</summary>
+  <ul class="small">
+  {% for r in report.capability.rows %}<li><strong>{{ r.approach }}:</strong> {{ r.basis }}</li>{% endfor %}
+  </ul>
+</details>
+
+<h3>{{ n0 + 2 }}. Research gaps from the survey and PhishGuard's response</h3>
+<div class="scroll">
+<table>
+  <tr><th>Gap</th><th>Evidence in surveyed work</th><th>PhishGuard response</th><th>Status</th></tr>
+  {% for g in report.gaps %}
+  <tr><td>{{ g.gap }}</td><td class="small">{{ g.evidence }}</td><td class="small">{{ g.response }}</td><td class="small">{{ g.status }}</td></tr>
+  {% endfor %}
+</table>
+</div>
+
+<h3>{{ n0 + 3 }}. Same-data benchmark (measured by PhishGuard)</h3>
+{% if report.benchmark.rows %}
+<div class="scroll">
+<table>
+  <tr><th>Model</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1</th><th>ROC-AUC</th><th>FPR</th></tr>
+  {% for r in report.benchmark.rows %}
+  <tr><td>{{ r.model }}</td><td>{{ r.accuracy }}</td><td>{{ r.precision }}</td><td>{{ r.recall }}</td><td>{{ r.f1 }}</td><td>{{ r.roc_auc }}</td><td>{{ r.fpr }}</td></tr>
+  {% endfor %}
+</table>
+</div>
+{% endif %}
+<p class="muted small">{{ report.benchmark.note }}</p>
+
+<h3>{{ n0 + 4 }}. Accuracy reported in the literature (not directly comparable)</h3>
+<div class="scroll">
+<table>
+  <tr><th>Category</th><th>Method</th><th>Ref.</th><th>Reported accuracy</th></tr>
+  {% for r in report.reported_accuracy.rows %}
+  <tr><td>{{ r[0] }}</td><td>{{ r[1] }}</td><td>{{ r[2] }}</td><td>{{ r[3] }}</td></tr>
+  {% endfor %}
+</table>
+</div>
+<p class="muted small">{{ report.reported_accuracy.caveat }}</p>
+
+<h3>{{ n0 + 5 }}. Limitations</h3>
+<ul class="small">
+  {% for t, d in report.limitations %}<li><strong>{{ t }}.</strong> {{ d }}</li>{% endfor %}
+</ul>
+<p class="muted small">Source of the literature content: {{ report.survey_title }}. Generated {{ report.generated_at }}.</p>

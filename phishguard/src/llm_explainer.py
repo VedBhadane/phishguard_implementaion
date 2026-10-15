@@ -43,10 +43,34 @@ _PHISH_PHRASING = {
 }
 
 
+# A phrase is only used when the feature's VALUE actually fits it. Without this,
+# a feature that pushes the score up because its value is *low* (for example
+# num_subdomains = 0 on a bare domain) would be described as if it were high
+# ("unusually deep subdomain chain"), which is misleading.
+_VALUE_FITS = {
+    "num_subdomains": lambda v: v >= 3,
+    "iframe_count": lambda v: v >= 1,
+    "external_link_ratio": lambda v: v >= 0.5,
+    "suspicious_word_count": lambda v: v >= 1,
+    "url_entropy": lambda v: v >= 4.5,
+    "is_https": lambda v: v == 0,
+}
+
+
+def _value_fits(feature, value):
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return False
+    check = _VALUE_FITS.get(feature)
+    return check(v) if check else v >= 1      # default: a binary flag that is switched on
+
+
 def _template_sentence(verdict, proba, top_features):
     reasons = []
     for f in top_features:
-        if f["contribution"] > 0 and f["feature"] in _PHISH_PHRASING:
+        if (f["contribution"] > 0 and f["feature"] in _PHISH_PHRASING
+                and _value_fits(f["feature"], f["value"])):
             reasons.append(_PHISH_PHRASING[f["feature"]])
         if len(reasons) >= 3:
             break

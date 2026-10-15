@@ -8,7 +8,7 @@ directions from the survey's Section 6 with runnable code:
 | Survey direction | What's implemented | Where |
 |---|---|---|
 | Direction 1 — Drift-Adaptive Streaming Pipelines (Gap 1) | A DDM (Drift Detection Method) statistical monitor that watches live prediction accuracy and auto-triggers retraining on a buffered recent window when the error distribution shifts | `src/drift.py`, `src/streaming_simulation.py` |
-| Direction 2 — API-Independent Hybrid Feature Architecture (Gap 3, Gap 5) | 40 features combining URL lexical analysis + HTML structural analysis — no WHOIS, no Google Safe Browsing, no Alexa rank, no network calls at all | `src/features.py` |
+| Direction 2 — API-Independent Hybrid Feature Architecture (Gap 3, Gap 5) | 40 features combining URL lexical analysis + HTML structural analysis — no WHOIS, no Google Safe Browsing, no Alexa rank, no third-party lookups (feature extraction itself makes no network calls; since v3 the app makes one request to the page being checked, see `src/fetcher.py`) | `src/features.py` |
 | Direction 3 — Explainability (Gap 2) | Per-prediction local explanations via single-feature ablation (see "About the explainability method" below — this is a lightweight, honestly-labeled substitute for the survey's proposed LLM-assisted explainer, not an LLM call) | `src/model.py` (`explain()`) |
 | Direction 4 — Lightweight Real-Time Deployment (Gap 6) | A RandomForest classifier (sub-millisecond inference, no GPU) wrapped in a Flask web app + REST API | `src/app.py`, `run_app.py` |
 
@@ -21,6 +21,23 @@ protect real users** — swap in a real dataset first. Instructions for
 that are below.
 
 ---
+
+## What's new in v3 (auto-fetch + comparison report)
+
+- Enter only a URL. PhishGuard fetches the page HTML itself (`src/fetcher.py`)
+  and falls back to URL-only scoring if it cannot.
+- Every scan now ends with a **comparison report** (on the page and as a PDF)
+  showing how four traditional baseline models judge the same URL, what the
+  fetched page added, and how PhishGuard compares with the approaches in the
+  literature survey. A **project-level report** is at `/report` and `/report.pdf`.
+- API: `POST /api/scan {"url": "..."}`; add `"report": true` for the report.
+  Optional `"html"` still overrides the fetch. Set `PHISHGUARD_FETCH=0` to turn
+  fetching off.
+- Fixed: the web page showed SUSPICIOUS results as LEGITIMATE.
+- New: `pip install -r requirements.txt` (adds `requests`, `reportlab`), run
+  `python3 -c "from src.baselines import train_baselines; train_baselines()"`
+  once if `models/baselines.joblib` is missing (train.py also does it), tests in
+  `tests/test_v3.py`. See `CHANGELOG_v3.md`.
 
 ## 1. What you need to download / install
 
@@ -230,10 +247,13 @@ to drift more slowly.
   deployment you'd need a mechanism to get those labels back to the
   detector — this repo simulates that with the synthetic generator in
   `streaming_simulation.py`.
-- **No browser-extension / live-fetch component**: the app expects the
-  caller (you, or whatever wraps this API) to supply the URL and,
-  optionally, HTML it already has — it deliberately never fetches
-  pages itself, which is what keeps it API-independent and fast.
+- **Page fetching (v3)**: the app now fetches the page behind the URL
+  itself (static HTML only, SSRF-protected, 4 s timeout, 1.5 MB cap, see
+  `src/fetcher.py`). It still uses no third-party lookups, but it does make
+  one request to the site being checked, so scan time depends on that site.
+  Pages that are down, blocked or cloaked fall back to URL-only scoring and
+  are reported with `used_html: false`. There is still no browser-extension
+  component.
 
 ---
 

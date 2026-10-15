@@ -173,8 +173,12 @@ class PhishGuardModel:
 
     def save(self, model_path=MODEL_PATH, meta_path=META_PATH):
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
+        # Store the background medians as a plain dict of floats (not a pandas
+        # Series) so the file loads under any pandas version.
+        bg = self.background
+        bg = {str(k): float(v) for k, v in bg.items()} if bg is not None else None
         joblib.dump(
-            {"clf": self.clf, "background": self.background, "calibrator": self.calibrator},
+            {"clf": self.clf, "background": bg, "calibrator": self.calibrator},
             model_path,
         )
         with open(meta_path, "w") as f:
@@ -183,7 +187,10 @@ class PhishGuardModel:
     @classmethod
     def load(cls, model_path=MODEL_PATH, meta_path=META_PATH):
         payload = joblib.load(model_path)
-        m = cls(clf=payload["clf"], background=payload["background"])
+        bg = payload["background"]
+        if bg is not None and not isinstance(bg, pd.Series):
+            bg = pd.Series(bg, dtype=float)
+        m = cls(clf=payload["clf"], background=bg)
         m.calibrator = payload.get("calibrator")
         if os.path.exists(meta_path):
             with open(meta_path) as f:
